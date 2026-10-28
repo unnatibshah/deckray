@@ -1,13 +1,15 @@
-# Office RAG
+# Deckray
 
 **Structure-aware ingestion of PowerPoint and Excel files for retrieval-augmented generation.**
-Most pipelines flatten Office files into a wall of text and lose what made them useful: slide titles, bullet hierarchy, table headers, merged cells, chart data, speaker notes. Office RAG keeps the structure, shows exactly what it extracted, and answers with citations to the slide or row.
+Most pipelines flatten Office files into a wall of text and lose what made them useful: slide titles, bullet hierarchy, table headers, merged cells, chart data, speaker notes. Deckray keeps the structure, shows exactly what it extracted, and answers with citations to the slide or row.
 
-**[Try it in your browser →](https://unnatibshah.github.io/office-rag/)** Files are parsed on your device and never uploaded.
+**[Open Deckray →](https://unnatibshah.github.io/deckray/)** Files are parsed on your device and never uploaded.
+
+The app shows the whole pipeline as it runs: for each file, archive validation, what the parser found, image description, chunking and embedding; for each question, the plan, query embedding, filtering and ranking with scores, context expansion and the cited answer. An **Inspect** view outlines every extracted element in the color of its chunk, a **Chunks** table lists everything indexed, and **Ask** keeps a thread of answers that link back to the exact slide or row.
 
 ## What it extracts
 
-| PowerPoint (`officerag/pptx.py`) | Excel (`officerag/xlsx.py`) |
+| PowerPoint (`deckray/pptx.py`) | Excel (`deckray/xlsx.py`) |
 |---|---|
 | Slides in presentation order (not filename order, so slide 10 follows slide 9) | Header row detected under title rows; title rows become the sheet description |
 | Title, text with bullet and numbered hierarchy, including bullets inherited from the layout | Merged cells unmerged everywhere, so every row carries its full context |
@@ -41,9 +43,9 @@ Defaults to Ollama on your machine: `qwen2.5:14b` for planning and answers, `bge
 
 ```bash
 python -m venv .venv && .venv/bin/pip install -r requirements.txt
-.venv/bin/python -m officerag inspect "samples/Solar Sites Directory.xlsx"
-.venv/bin/python -m officerag ask samples/*.pptx samples/*.xlsx -q "Which sites in Spain are offline?"
-.venv/bin/python -m officerag ask deck.pptx -q "..." --provider openai --model <model-id> --key "$OPENAI_API_KEY"
+.venv/bin/python -m deckray inspect "samples/Solar Sites Directory.xlsx"
+.venv/bin/python -m deckray ask samples/*.pptx samples/*.xlsx -q "Which sites in Spain are offline?"
+.venv/bin/python -m deckray ask deck.pptx -q "..." --provider openai --model <model-id> --key "$OPENAI_API_KEY"
 ```
 
 ## Safety

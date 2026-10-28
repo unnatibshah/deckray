@@ -71,8 +71,11 @@ def naive_chunks(doc: str, ex: dict, size: int = 700) -> list[dict]:
     return [_chunk(doc, f"{doc}#naive{i // size + 1}", "naive", {}, flat[i:i + size]) for i in range(0, len(flat), size)]
 
 
-def select_context(chunks: list[dict], scores: list[float], plan: dict, k: int = 8) -> list[dict]:
-    """Top-k by similarity after the plan's structured filters; slide hits pull in their sibling chunks."""
+def select_context(chunks: list[dict], scores: list[float], plan: dict, k: int = 8, stats: dict | None = None) -> list[dict]:
+    """Top-k by similarity after the plan's structured filters; slide hits pull in their sibling chunks.
+
+    Pass a dict as `stats` to get the numbers behind the selection (eligible, hits, siblings added, top scores).
+    """
     route, filters, sheet = plan.get("route", "both"), plan.get("filters") or {}, plan.get("sheet")
     def allowed(c: dict) -> bool:
         if route == "pptx" and c["type"] == "row" or route == "xlsx" and c["type"] != "row":
@@ -84,7 +87,11 @@ def select_context(chunks: list[dict], scores: list[float], plan: dict, k: int =
         return True
     ranked = sorted((i for i, c in enumerate(chunks) if allowed(c) and c["type"] != "naive"), key=lambda i: -scores[i])
     picked, seen = [], set()
-    for i in ranked[: (40 if filters else k)]:  # filtered queries return every matching row (up to 40)
+    hits = ranked[: (40 if filters else k)]  # filtered queries return every matching row (up to 40)
+    if stats is not None:
+        stats.update(total=len(chunks), eligible=len(ranked), hits=len(hits),
+                     top=[{"id": chunks[i]["id"], "score": round(scores[i], 3)} for i in hits[:5]])
+    for i in hits:
         c = chunks[i]
         group = [x for x in chunks if x["doc"] == c["doc"] and x["where"].get("slide") == c["where"].get("slide")] \
             if "slide" in c["where"] else [c]
@@ -92,6 +99,8 @@ def select_context(chunks: list[dict], scores: list[float], plan: dict, k: int =
             if x["id"] not in seen:
                 seen.add(x["id"])
                 picked.append(x)
+    if stats is not None:
+        stats["siblings"] = max(0, min(len(picked), 40) - len(hits))
     return picked[:40]
 
 

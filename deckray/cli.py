@@ -1,8 +1,8 @@
 """Local RAG over PowerPoint and Excel files. Defaults to Ollama on this machine; nothing leaves it.
 
-  python -m officerag ask samples/*.pptx samples/*.xlsx -q "Which sites in Spain are offline?"
-  python -m officerag inspect "samples/Solar Sites Directory.xlsx"
-  python -m officerag ask docs/*.xlsx -q "..." --provider openai --model <model> --key $OPENAI_API_KEY
+  python -m deckray ask samples/*.pptx samples/*.xlsx -q "Which sites in Spain are offline?"
+  python -m deckray inspect "samples/Solar Sites Directory.xlsx"
+  python -m deckray ask docs/*.xlsx -q "..." --provider openai --model <model> --key $OPENAI_API_KEY
 """
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ import httpx
 from . import ingest, llm
 from .chunks import select_context, sources
 
-CACHE = Path(".officerag-cache.json")
+CACHE = Path(".deckray-cache.json")
 
 
 async def _post(url: str, headers: dict, body: dict) -> dict:
@@ -73,7 +73,7 @@ def inspect(args) -> None:
 
 
 def main() -> None:
-    p = argparse.ArgumentParser(prog="officerag", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    p = argparse.ArgumentParser(prog="deckray", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = p.add_subparsers(dest="cmd", required=True)
     a = sub.add_parser("ask", help="answer a question over the files")
     a.add_argument("files", nargs="+")

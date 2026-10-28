@@ -36,12 +36,18 @@ async def chat(cfg: dict, post: Post, messages: list[dict], *, json_mode: bool =
         body = {"model": cfg["model"], "max_tokens": max_tokens, "temperature": 0.1, "system": system,
                 "messages": [m for m in messages if m["role"] != "system"]}
         r = await post(f"{base}/messages", _headers(cfg), body)
-        return "".join(b.get("text", "") for b in r.get("content", []))
+        text = "".join(b.get("text", "") for b in r.get("content", []))
+        if not text.strip():
+            raise RuntimeError(f"{cfg['model']} returned an empty response")
+        return text
     body = {"model": cfg["model"], "messages": messages, "max_tokens": max_tokens, "temperature": 0.1}
     if json_mode:
         body["response_format"] = {"type": "json_object"}
     r = await post(f"{base}/chat/completions", _headers(cfg), body)
-    return r["choices"][0]["message"]["content"] or ""
+    text = ((r.get("choices") or [{}])[0].get("message") or {}).get("content") or ""
+    if not text.strip():  # e.g. Ollama out of GPU memory still answers 200 with empty content
+        raise RuntimeError(f"{cfg['model']} returned an empty response" + (f" ({r['error']})" if r.get("error") else ""))
+    return text
 
 
 def _json(text: str) -> dict:

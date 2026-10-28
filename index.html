@@ -3,238 +3,304 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Office RAG · Unnati Shah</title>
-<meta name="description" content="See how PowerPoint and Excel files become RAG chunks: structure-aware ingestion, in-browser search and cited answers. Your files never leave your device.">
-<link rel="icon" href="https://unnatibshah.github.io/favicon.ico" sizes="any">
+<title>Deckray · see inside your slides and spreadsheets</title>
+<meta name="description" content="Deckray turns PowerPoint and Excel files into structure-aware RAG chunks, shows every pipeline step, and answers with citations. Runs entirely in your browser.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='20' height='14' rx='3' fill='%234f46e5'/%3E%3Crect x='9' y='13' width='20' height='14' rx='3' fill='%2316a06b' fill-opacity='.9'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#f6f5f0;--paper:#fffefb;--ink:#1a1d22;--mute:#5f646d;--faint:#9ba0a8;--line:#e5e2d9;--line2:#d3cfc3;--acc:#0e8a78;
-  --text:#5468ff;--table:#e07a2f;--chart:#d4417a;--smartart:#8a5cf6;--notes:#c99700;--links:#2585cc;--images:#6b7280;--row:#16a06b;--naive:#9aa0a6;
-  --shadow:0 1px 0 rgba(26,29,34,.04),0 6px 24px rgba(26,29,34,.06);color-scheme:light}
+:root{--bg:#f4f5f7;--panel:#fff;--sunk:#f8f9fb;--ink:#111827;--mute:#6b7280;--faint:#9ca3af;--line:#e5e7eb;--line2:#d1d5db;--acc:#4f46e5;--acc-soft:#eef2ff;--ok:#059669;--bad:#dc2626;--warn:#b45309;
+  --text:#4f46e5;--table:#ea7a2a;--chart:#db2777;--smartart:#7c3aed;--notes:#ca8a04;--links:#0284c7;--images:#64748b;--row:#059669;--naive:#9ca3af;color-scheme:light}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
-html,body{margin:0}
-body{background:var(--bg);color:var(--ink);font:15px/1.5 'IBM Plex Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
-body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:32px 32px;opacity:.35;mask-image:linear-gradient(#000,transparent 70%)}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font:13px/1.5 Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;display:grid;grid-template-rows:48px minmax(0,1fr) 28px;overflow:hidden}
+button{font:inherit;cursor:pointer;color:inherit}
 a{color:inherit}
-button{font:inherit;cursor:pointer}
-.mono{font-family:'IBM Plex Mono',monospace}
-.wrap{max-width:1360px;margin:0 auto;padding:0 clamp(14px,3vw,32px)}
-.top{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:18px 0;font-size:13px}
-.brand{display:flex;gap:10px;align-items:center;font-family:'Bricolage Grotesque';font-weight:700;font-size:18px;text-decoration:none}
-.brand i{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,var(--text) 0 33%,var(--table) 33% 66%,var(--row) 66%);position:relative}
-.brand i::after{content:"";position:absolute;inset:6px;border-radius:3px;background:var(--paper);opacity:.85}
-.top nav{display:flex;gap:4px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
-.top nav a,.top nav button{border:0;background:none;text-decoration:none;color:var(--mute);padding:7px 11px;border-radius:8px}
-.top nav a:hover,.top nav button:hover{background:var(--paper);color:var(--ink)}
-.top nav .model{border:1px solid var(--line2);background:var(--paper);color:var(--ink)}
-.top nav .model b{font-weight:500;color:var(--acc)}
-
-.hero{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:clamp(20px,4vw,56px);align-items:center;padding:clamp(20px,5vh,56px) 0 28px}
-@media (max-width:900px){.hero{grid-template-columns:1fr}}
-.eyebrow{font:500 12px 'IBM Plex Mono';letter-spacing:.08em;text-transform:uppercase;color:var(--acc)}
-h1{font-family:'Bricolage Grotesque';font-weight:700;font-size:clamp(36px,5.2vw,66px);line-height:1;letter-spacing:-.03em;margin:12px 0 16px}
-h1 span{background:linear-gradient(transparent 62%,color-mix(in oklab,var(--table) 30%,transparent) 62%)}
-.lede{margin:0;color:var(--mute);font-size:17px;max-width:36rem}
-.private{display:inline-flex;gap:8px;align-items:center;margin-top:16px;font-size:13px;color:var(--acc);background:color-mix(in oklab,var(--acc) 9%,var(--paper));border:1px solid color-mix(in oklab,var(--acc) 25%,transparent);padding:6px 12px;border-radius:999px}
-.drop{border:2px dashed var(--line2);border-radius:18px;background:var(--paper);padding:26px;text-align:center;transition:border-color .2s,background .2s;box-shadow:var(--shadow)}
-.drop.over{border-color:var(--acc);background:color-mix(in oklab,var(--acc) 6%,var(--paper))}
-.drop h3{margin:0 0 4px;font-family:'Bricolage Grotesque';font-size:22px}
-.drop p{margin:0 0 16px;color:var(--mute);font-size:14px}
-.btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
-.btn{border:1px solid var(--line2);background:var(--paper);border-radius:10px;padding:10px 16px;font-weight:500}
-.btn.primary{background:var(--ink);color:var(--paper);border-color:var(--ink)}
-.btn:disabled{opacity:.5;cursor:default}
-.steps{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:16px;font:12px 'IBM Plex Mono'}
-.step{padding:4px 10px;border-radius:999px;border:1px solid var(--line);color:var(--faint)}
-.step.run{color:var(--ink);border-color:var(--ink);animation:pulse 1.2s infinite}
-.step.ok{color:var(--acc);border-color:color-mix(in oklab,var(--acc) 45%,transparent)}
-.step.err{color:#b4472f;border-color:#b4472f}
-@keyframes pulse{50%{opacity:.5}}
-
-/* lab */
-.lab{display:grid;grid-template-columns:230px minmax(0,1fr) 380px;gap:14px;align-items:start}
-@media (max-width:1150px){.lab{grid-template-columns:200px minmax(0,1fr)}.chunks{grid-column:1/-1}}
-@media (max-width:720px){.lab{grid-template-columns:1fr}}
-.panel{background:var(--paper);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
-.ph{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid var(--line);font:500 12px 'IBM Plex Mono';letter-spacing:.04em;text-transform:uppercase;color:var(--mute)}
-.lib{padding:8px;max-height:640px;overflow:auto}
-.doc{margin-bottom:10px}
-.doc .dn{display:flex;justify-content:space-between;gap:6px;padding:6px 8px;font-weight:600;font-size:13px;word-break:break-word}
-.doc .dn button{border:0;background:none;color:var(--faint);padding:0 4px}
-.item{display:flex;gap:8px;align-items:baseline;width:100%;text-align:left;border:0;background:none;padding:6px 8px 6px 12px;border-radius:8px;font-size:13px;color:var(--mute)}
-.item:hover{background:var(--bg)}
-.item.on{background:color-mix(in oklab,var(--acc) 10%,var(--paper));color:var(--ink)}
-.item small{font:11px 'IBM Plex Mono';color:var(--faint);min-width:22px}
-.badge{font:10px 'IBM Plex Mono';padding:1px 6px;border-radius:5px;border:1px solid var(--line2);color:var(--faint);margin-left:auto;white-space:nowrap}
-.empty{padding:22px;color:var(--faint);font-size:14px}
-
-.xray{padding:18px;min-height:420px}
-.slide{border:1px solid var(--line2);border-radius:12px;padding:22px 24px;background:#fff;position:relative}
-.slide h2{margin:0 0 14px;font-family:'Bricolage Grotesque';font-size:26px;line-height:1.15}
-.el{position:relative;border:1.5px dashed var(--c);border-radius:10px;padding:14px 14px 12px;margin:14px 0 0;background:color-mix(in oklab,var(--c) 4%,#fff);transition:box-shadow .2s,background .2s}
-.el.hl,.el:hover{background:color-mix(in oklab,var(--c) 11%,#fff);box-shadow:0 0 0 3px color-mix(in oklab,var(--c) 22%,transparent)}
-.tag{position:absolute;top:-10px;left:10px;font:500 10px 'IBM Plex Mono';letter-spacing:.04em;text-transform:uppercase;background:var(--c);color:#fff;padding:2px 7px;border-radius:5px}
-.lines{margin:0;font-size:15px;white-space:pre-wrap}
-.xt{border-collapse:collapse;width:100%;font-size:13px}
-.xt th,.xt td{border:1px solid var(--line2);padding:5px 8px;text-align:left;vertical-align:top}
-.xt th{background:color-mix(in oklab,var(--c) 12%,#fff);font-weight:600}
-.bars{display:flex;gap:18px;align-items:flex-end;height:170px;padding:24px 4px 0}
+.mono{font-family:'JetBrains Mono',monospace}
+svg.i{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.titlebar{display:flex;align-items:center;gap:12px;padding:0 14px;background:var(--panel);border-bottom:1px solid var(--line)}
+.logo{display:flex;align-items:center;gap:9px;font-weight:700;font-size:15px;text-decoration:none;letter-spacing:-.01em}
+.logo svg{width:22px;height:22px}
+.crumb{color:var(--faint);display:flex;gap:8px;align-items:center}
+.crumb b{color:var(--ink);font-weight:500}
+.spacer{flex:1}
+.tb-btn{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--panel);border-radius:7px;padding:5px 10px;color:var(--mute);text-decoration:none;white-space:nowrap}
+.tb-btn:hover{border-color:var(--line2);color:var(--ink)}
+.tb-btn b{color:var(--ink);font-weight:500}
+.private{display:inline-flex;align-items:center;gap:6px;color:var(--ok);font-weight:500;padding:5px 10px;border-radius:7px;background:#ecfdf5}
+.shell{display:grid;grid-template-columns:250px minmax(0,1fr) 350px;min-height:0}
+.sidebar,.activity{background:var(--panel);display:flex;flex-direction:column;min-height:0}
+.sidebar{border-right:1px solid var(--line)}
+.activity{border-left:1px solid var(--line)}
+.ph{display:flex;align-items:center;justify-content:space-between;gap:8px;height:40px;padding:0 12px;border-bottom:1px solid var(--line);font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);flex:none}
+.ph .acts{display:flex;gap:4px}
+.icon-btn{display:inline-grid;place-items:center;width:26px;height:26px;border:0;background:none;border-radius:6px;color:var(--mute)}
+.icon-btn:hover{background:var(--sunk);color:var(--ink)}
+.icon-btn:disabled{opacity:.4;cursor:default}
+.scroll{overflow:auto;min-height:0;flex:1}
+.drop-mini{margin:10px;border:1.5px dashed var(--line2);border-radius:9px;padding:12px;text-align:center;color:var(--mute);font-size:12px}
+.drop-mini b{color:var(--acc);font-weight:500;cursor:pointer}
+.tree{padding:4px 6px 10px}
+.tdoc{margin-top:6px}
+.tdoc-h{display:flex;align-items:center;gap:7px;padding:6px 8px;border-radius:6px;font-weight:600;font-size:12.5px}
+.tdoc-h .ft{font:600 9.5px 'JetBrains Mono';padding:2px 5px;border-radius:4px;color:#fff}
+.tdoc-h .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tdoc-h .icon-btn{width:22px;height:22px;opacity:0}
+.tdoc-h:hover .icon-btn{opacity:1}
+.titem{display:flex;align-items:center;gap:8px;width:100%;border:0;background:none;text-align:left;padding:5px 8px 5px 22px;border-radius:6px;color:var(--mute)}
+.titem:hover{background:var(--sunk);color:var(--ink)}
+.titem.on{background:var(--acc-soft);color:var(--acc);font-weight:500}
+.titem .n{font:11px 'JetBrains Mono';color:var(--faint);min-width:18px}
+.titem .lb{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pill{font:500 10px 'JetBrains Mono';padding:1px 6px;border-radius:4px;background:var(--sunk);color:var(--faint);white-space:nowrap}
+.pill.warn{background:#fff7ed;color:var(--warn)}
+.sb-foot{border-top:1px solid var(--line);padding:10px 12px;font-size:11.5px;color:var(--mute);display:flex;flex-direction:column;gap:3px}
+.main{display:flex;flex-direction:column;min-height:0;min-width:0}
+.tabs{display:flex;gap:2px;height:40px;align-items:flex-end;padding:0 12px;background:var(--panel);border-bottom:1px solid var(--line);flex:none}
+.tab{display:inline-flex;align-items:center;gap:7px;border:0;background:none;padding:0 12px;height:40px;color:var(--mute);border-bottom:2px solid transparent;font-weight:500}
+.tab:hover{color:var(--ink)}
+.tab.on{color:var(--ink);border-bottom-color:var(--acc)}
+.tab .count{font:11px 'JetBrains Mono';background:var(--sunk);color:var(--mute);padding:0 6px;border-radius:9px}
+.view{flex:1;min-height:0;display:flex}
+.view>section{flex:1;min-width:0;min-height:0}
+.inspect{display:grid;grid-template-columns:minmax(0,1fr) 340px}
+.canvas{overflow:auto;padding:22px;min-height:0}
+.canvas-h{display:flex;align-items:center;gap:10px;margin-bottom:14px;color:var(--mute);font-size:12px;flex-wrap:wrap}
+.canvas-h b{color:var(--ink);font-size:14px}
+.inspector{border-left:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;min-height:0}
+.seg{display:flex;border:1px solid var(--line);border-radius:7px;overflow:hidden;text-transform:none;letter-spacing:0}
+.seg button{border:0;background:none;padding:3px 9px;font-size:11.5px;font-weight:500;color:var(--mute)}
+.seg button.on{background:var(--ink);color:#fff}
+.clist{padding:10px;display:flex;flex-direction:column;gap:8px}
+.ck{border:1px solid var(--line);border-left:3px solid var(--c);border-radius:8px;padding:8px 10px;background:var(--panel);cursor:pointer;transition:box-shadow .15s}
+.ck:hover{border-color:var(--line2);border-left-color:var(--c)}
+.ck.hl{box-shadow:0 0 0 3px color-mix(in oklab,var(--c) 22%,transparent)}
+.ck header{display:flex;justify-content:space-between;gap:8px;font:11px 'JetBrains Mono';color:var(--faint);margin-bottom:4px}
+.ck header b{color:var(--c);font-weight:500;text-transform:uppercase}
+.ck pre{margin:0;font:11.5px/1.5 'JetBrains Mono';white-space:pre-wrap;word-break:break-word;max-height:7.5em;overflow:hidden}
+.ck.open pre{max-height:none}
+.note{margin:10px 10px 0;padding:9px 11px;font-size:12px;color:var(--mute);background:var(--sunk);border-radius:8px}
+.slide{max-width:880px;border:1px solid var(--line);border-radius:12px;padding:26px 28px;background:var(--panel);box-shadow:0 1px 2px rgba(0,0,0,.04),0 8px 24px rgba(0,0,0,.04)}
+.slide h2{margin:0 0 6px;font-size:24px;line-height:1.2;letter-spacing:-.02em}
+.el{position:relative;border:1.5px dashed color-mix(in oklab,var(--c) 70%,transparent);border-radius:9px;padding:14px 14px 12px;margin:18px 0 0;background:color-mix(in oklab,var(--c) 3%,#fff);cursor:pointer;transition:background .15s,box-shadow .15s}
+.el:hover,.el.hl{background:color-mix(in oklab,var(--c) 9%,#fff);box-shadow:0 0 0 3px color-mix(in oklab,var(--c) 18%,transparent)}
+.tag{position:absolute;top:-9px;left:10px;font:500 9.5px 'JetBrains Mono';letter-spacing:.04em;text-transform:uppercase;background:var(--c);color:#fff;padding:1px 7px;border-radius:4px}
+.lines{margin:0;font-size:14px;white-space:pre-wrap}
+.xt{border-collapse:collapse;width:100%;font-size:12.5px}
+.xt th,.xt td{border:1px solid var(--line);padding:5px 8px;text-align:left}
+.xt th{background:color-mix(in oklab,var(--c) 10%,#fff);font-weight:600}
+.bars{display:flex;gap:22px;align-items:flex-end;height:170px;padding:22px 6px 0}
 .bars .g{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%}
 .bars .bs{flex:1;display:flex;gap:4px;align-items:flex-end;width:100%;justify-content:center}
-.bars .b{width:22px;border-radius:4px 4px 0 0;position:relative}
-.bars .b span{position:absolute;top:-17px;left:50%;transform:translateX(-50%);font:10px 'IBM Plex Mono';color:var(--mute)}
+.bars .b{width:22px;border-radius:4px 4px 0 0;position:relative;animation:grow .6s cubic-bezier(.2,.8,.2,1);transform-origin:bottom}
+@keyframes grow{from{transform:scaleY(0)}}
+.bars .b span{position:absolute;top:-16px;left:50%;transform:translateX(-50%);font:10px 'JetBrains Mono';color:var(--mute)}
 .bars label{font-size:12px;color:var(--mute)}
 .legend{display:flex;gap:14px;font-size:12px;color:var(--mute);margin-top:8px}
-.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
-.tree{margin:0;padding-left:18px;font-size:14px}
-.sticky{background:#fff6cc;border-radius:6px;padding:10px 12px;font-size:14px;transform:rotate(-.4deg)}
-.alt{display:flex;gap:12px;align-items:center;font-size:14px}
-.alt b{flex:none;width:64px;height:44px;border-radius:6px;background:repeating-linear-gradient(45deg,#e8eaee 0 6px,#f3f4f6 6px 12px);display:grid;place-items:center;font:10px 'IBM Plex Mono';color:var(--faint)}
-.sheetbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;font:12px 'IBM Plex Mono';color:var(--mute)}
-.sheetbar span{padding:3px 8px;border-radius:6px;background:var(--bg)}
-.sheetbar .warn{background:#fff1e6;color:#b4581f}
-.gridwrap{overflow:auto;max-height:560px;border:1px solid var(--line2);border-radius:10px}
-.grid{border-collapse:collapse;font-size:12.5px;min-width:100%}
-.grid th,.grid td{border:1px solid var(--line);padding:4px 8px;white-space:nowrap;max-width:240px;overflow:hidden;text-overflow:ellipsis}
-.grid thead th{position:sticky;top:0;background:#f1efe8;font:500 11px 'IBM Plex Mono';color:var(--faint);z-index:1}
-.grid td.rn{font:11px 'IBM Plex Mono';color:var(--faint);background:#f7f6f1;position:sticky;left:0}
-.grid tr.hdr td{background:color-mix(in oklab,var(--acc) 16%,#fff);font-weight:600}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px}
+.tree-ul{margin:0;padding-left:18px}
+.sticky{background:#fef9c3;border-radius:6px;padding:10px 12px;font-size:13px}
+.alt{display:flex;gap:12px;align-items:center;font-size:13px}
+.alt b{flex:none;width:58px;height:40px;border-radius:6px;background:repeating-linear-gradient(45deg,#eef0f3 0 6px,#f6f7f9 6px 12px);display:grid;place-items:center;font:10px 'JetBrains Mono';color:var(--faint)}
+.chip{display:inline-flex;gap:6px;align-items:center;font-size:11.5px;padding:3px 9px;border-radius:999px;background:var(--panel);border:1px solid var(--line);color:var(--mute)}
+.chip.warn{background:#fff7ed;border-color:#fed7aa;color:var(--warn)}
+.gridwrap{overflow:auto;max-height:calc(100vh - 250px);border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+.grid{border-collapse:collapse;font-size:12px;min-width:100%}
+.grid th,.grid td{border:1px solid var(--line);padding:4px 8px;white-space:nowrap;max-width:220px;overflow:hidden;text-overflow:ellipsis}
+.grid thead th{position:sticky;top:0;background:var(--sunk);font:500 10.5px 'JetBrains Mono';color:var(--faint);z-index:1}
+.grid td.rn{font:10.5px 'JetBrains Mono';color:var(--faint);background:var(--sunk);position:sticky;left:0}
+.grid tr.hdr td{background:var(--acc-soft);font-weight:600;color:var(--acc)}
 .grid tr.desc td{color:var(--faint);font-style:italic}
 .grid tr.data{cursor:pointer}
-.grid tr.data:hover td,.grid tr.hl td{background:color-mix(in oklab,var(--row) 11%,#fff)}
-.grid td.m{background-image:repeating-linear-gradient(135deg,transparent 0 5px,color-mix(in oklab,var(--table) 16%,transparent) 5px 7px)}
-.gridnote{margin-top:10px;display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--mute)}
-.gridnote i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-2px;border:1px solid var(--line2)}
-
-.chunks .ph .seg{display:flex;border:1px solid var(--line2);border-radius:8px;overflow:hidden;text-transform:none;letter-spacing:0}
-.seg button{border:0;background:none;padding:4px 9px;font:12px 'IBM Plex Sans';color:var(--mute)}
-.seg button.on{background:var(--ink);color:var(--paper)}
-.clist{padding:10px;max-height:640px;overflow:auto;display:flex;flex-direction:column;gap:10px}
-.ck{border:1px solid var(--line);border-left:4px solid var(--c);border-radius:10px;padding:9px 11px;background:#fff;transition:box-shadow .2s}
-.ck.hl{box-shadow:0 0 0 3px color-mix(in oklab,var(--c) 25%,transparent)}
-.ck header{display:flex;justify-content:space-between;gap:8px;font:11px 'IBM Plex Mono';color:var(--faint);margin-bottom:5px}
-.ck header b{color:var(--c);font-weight:500;text-transform:uppercase}
-.ck pre{margin:0;font:12px/1.5 'IBM Plex Mono';white-space:pre-wrap;word-break:break-word;max-height:9.2em;overflow:hidden;color:var(--ink)}
-.ck.open pre{max-height:none}
-.ck button.more{border:0;background:none;color:var(--acc);font-size:12px;padding:4px 0 0}
-.note{padding:10px 12px;font-size:13px;color:var(--mute);background:var(--bg);border-radius:10px}
-
-/* ask */
-.ask{margin:22px 0}
-.askbox{padding:18px}
-.askbox form{display:flex;gap:10px}
-.askbox input{flex:1;min-width:0;border:1.5px solid var(--line2);border-radius:12px;padding:12px 14px;font:inherit;font-size:16px;background:#fff;outline:0}
-.askbox input:focus{border-color:var(--ink)}
-.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
-.chip{border:1px solid var(--line2);background:#fff;border-radius:999px;padding:6px 12px;font-size:13px;color:var(--mute)}
-.chip:hover{border-color:var(--ink);color:var(--ink)}
-.flow{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:16px;font:12px 'IBM Plex Mono';color:var(--mute)}
-.flow .pill{padding:4px 10px;border-radius:7px;background:var(--bg);border:1px solid var(--line)}
-.flow .pill b{color:var(--ink);font-weight:500}
-.flow .arrow{color:var(--faint)}
-.result{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:16px;margin-top:16px}
-@media (max-width:900px){.result{grid-template-columns:1fr}}
-.answer{font-size:16px;line-height:1.65;white-space:pre-wrap;background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 18px}
-.answer.dim{color:var(--mute);font-size:14px}
-.cite{border:0;background:color-mix(in oklab,var(--acc) 14%,#fff);color:var(--acc);font:600 11px 'IBM Plex Mono';border-radius:5px;padding:1px 5px;margin:0 1px;vertical-align:1px}
+.grid tr.data:hover td,.grid tr.hl td{background:color-mix(in oklab,var(--row) 9%,#fff)}
+.grid td.m{background-image:repeating-linear-gradient(135deg,transparent 0 5px,color-mix(in oklab,var(--table) 15%,transparent) 5px 7px)}
+.key{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;font-size:11.5px;color:var(--mute)}
+.key i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;vertical-align:-1px;border:1px solid var(--line2)}
+.welcome{max-width:760px;margin:7vh auto 0;text-align:center;padding:0 10px}
+.welcome .badge{display:inline-flex;gap:6px;align-items:center;font-size:12px;color:var(--acc);background:var(--acc-soft);padding:4px 10px;border-radius:999px;font-weight:500}
+.welcome h1{font-size:30px;letter-spacing:-.025em;margin:16px 0 8px;line-height:1.15}
+.welcome p{color:var(--mute);font-size:14.5px;margin:0 auto 22px;max-width:36rem}
+.btn{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line2);background:var(--panel);border-radius:8px;padding:8px 14px;font-weight:500}
+.btn:hover{border-color:var(--ink)}
+.btn.primary{background:var(--acc);border-color:var(--acc);color:#fff}
+.btn.primary:hover{background:#4338ca;border-color:#4338ca}
+.btn:disabled{opacity:.5;cursor:default}
+.flowline{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;margin-top:34px}
+.flowline span{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;background:var(--panel);border:1px solid var(--line);border-radius:8px;font-size:12px;color:var(--mute)}
+.flowline span i{width:7px;height:7px;border-radius:50%;background:var(--c)}
+.flowline em{color:var(--faint);font-style:normal}
+.tablev{display:flex;flex-direction:column;min-height:0}
+.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--panel)}
+.search{display:flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:7px;padding:5px 9px;background:var(--panel);min-width:220px;color:var(--faint)}
+.search input{border:0;outline:0;font:inherit;flex:1;min-width:0;color:var(--ink)}
+.fchip{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:3px 10px;font-size:11.5px;color:var(--mute);display:inline-flex;gap:6px;align-items:center}
+.fchip i{width:7px;height:7px;border-radius:50%;background:var(--c)}
+.fchip.on{border-color:var(--c);color:var(--ink);background:color-mix(in oklab,var(--c) 8%,#fff)}
+table.dt{border-collapse:collapse;width:100%;font-size:12.5px}
+.dt th{position:sticky;top:0;background:var(--sunk);text-align:left;font-weight:600;color:var(--mute);font-size:11px;letter-spacing:.04em;text-transform:uppercase;padding:8px 12px;border-bottom:1px solid var(--line);z-index:1}
+.dt td{padding:7px 12px;border-bottom:1px solid var(--line);vertical-align:top;background:var(--panel)}
+.dt tr:hover td{background:var(--sunk);cursor:pointer}
+.dt .ty{display:inline-flex;gap:6px;align-items:center;font:500 11px 'JetBrains Mono';color:var(--c);text-transform:uppercase}
+.dt .ty i{width:7px;height:7px;border-radius:50%;background:var(--c)}
+.dt .pv{color:var(--mute);max-width:520px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:11.5px 'JetBrains Mono'}
+.askv{display:flex;flex-direction:column;min-height:0}
+.thread{flex:1;overflow:auto;padding:20px max(20px,calc((100% - 820px)/2));display:flex;flex-direction:column;gap:16px}
+.msg-q{align-self:flex-end;max-width:80%;background:var(--ink);color:#fff;border-radius:12px 12px 2px 12px;padding:9px 13px;font-size:14px}
+.msg-a{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.msg-a .meta{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.msg-a .body{font-size:14.5px;line-height:1.65;white-space:pre-wrap}
+.msg-a .body.dim{color:var(--mute);font-size:13.5px}
+.msg-a .srcs{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
+.src{display:inline-flex;gap:6px;align-items:center;border:1px solid var(--line);border-left:3px solid var(--c);background:var(--panel);border-radius:6px;padding:3px 8px;font:11px 'JetBrains Mono';color:var(--mute);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.src:hover{border-color:var(--line2);border-left-color:var(--c);color:var(--ink)}
+.src b{color:var(--acc)}
+.cite{border:0;background:var(--acc-soft);color:var(--acc);font:600 10.5px 'JetBrains Mono';border-radius:4px;padding:0 5px;margin:0 1px;vertical-align:1px}
 .cite:hover{background:var(--acc);color:#fff}
-.srcs{display:flex;flex-direction:column;gap:8px}
-.src{display:flex;gap:10px;align-items:flex-start;text-align:left;border:1px solid var(--line);border-left:4px solid var(--c);background:#fff;border-radius:10px;padding:8px 10px}
-.src:hover{box-shadow:var(--shadow)}
-.src b{font:600 11px 'IBM Plex Mono';color:var(--acc);min-width:22px}
-.src span{font-size:13px;color:var(--mute);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.src small{display:block;font:11px 'IBM Plex Mono';color:var(--faint)}
-
-/* settings */
-dialog{border:0;border-radius:16px;padding:0;width:min(520px,94vw);box-shadow:0 30px 80px rgba(0,0,0,.25)}
-dialog::backdrop{background:rgba(26,29,34,.35)}
-.dlg{padding:22px}
-.dlg h3{margin:0 0 4px;font-family:'Bricolage Grotesque';font-size:22px}
-.dlg p.s{margin:0 0 16px;color:var(--mute);font-size:14px}
-.dlg label{display:block;font-size:13px;font-weight:500;margin:12px 0 5px}
-.dlg input,.dlg select{width:100%;border:1px solid var(--line2);border-radius:9px;padding:9px 11px;font:inherit;background:#fff}
-.dlg .row{display:flex;gap:8px}
-.dlg .row input{flex:1}
-.dlg .chk{display:flex;gap:8px;align-items:center;font-weight:400;margin-top:12px}
+.trace-link{border:0;background:none;color:var(--acc);font-size:12px;padding:0;margin-top:10px}
+.composer{border-top:1px solid var(--line);background:var(--panel);padding:12px max(20px,calc((100% - 820px)/2)) 14px}
+.composer form{display:flex;gap:8px}
+.composer input{flex:1;min-width:0;border:1px solid var(--line2);border-radius:9px;padding:10px 12px;font:inherit;font-size:14px;outline:0}
+.composer input:focus{border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-soft)}
+.examples{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.ex{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:3px 10px;font-size:12px;color:var(--mute)}
+.ex:hover{border-color:var(--acc);color:var(--acc)}
+.runs{padding:10px;display:flex;flex-direction:column;gap:10px}
+.run{border:1px solid var(--line);border-radius:10px;background:var(--panel);overflow:hidden}
+.run.focus{box-shadow:0 0 0 3px var(--acc-soft);border-color:#c7d2fe}
+.run summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;padding:9px 11px}
+.run summary::-webkit-details-marker{display:none}
+.run summary .k{font:600 10px 'JetBrains Mono';text-transform:uppercase;padding:1px 6px;border-radius:4px;background:var(--acc-soft);color:var(--acc)}
+.run summary .k.q{background:#ecfdf5;color:var(--ok)}
+.run summary .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+.run summary .ms{font:11px 'JetBrains Mono';color:var(--faint)}
+.run summary .stt{width:8px;height:8px;border-radius:50%;background:var(--acc);animation:blink 1s infinite}
+.run summary .stt.done{background:var(--ok);animation:none}
+.run summary .stt.fail{background:var(--bad);animation:none}
+.steps{list-style:none;margin:0;padding:2px 11px 10px}
+.st{display:grid;grid-template-columns:18px minmax(0,1fr) auto;gap:4px 8px;padding:6px 0;position:relative}
+.st.run{animation:fadein .25s}
+@keyframes fadein{from{opacity:0;transform:translateY(-3px)}}
+.st::before{content:"";position:absolute;left:8px;top:24px;bottom:-6px;width:1px;background:var(--line)}
+.st:last-child::before{display:none}
+.st .ic{width:17px;height:17px;border-radius:50%;display:grid;place-items:center;font-size:10px;font-weight:700;border:1.5px solid var(--line2);color:var(--faint);background:var(--panel);z-index:1}
+.st.done .ic{border-color:var(--ok);background:var(--ok);color:#fff}
+.st.fail .ic{border-color:var(--bad);background:var(--bad);color:#fff}
+.st.skip .ic{border-style:dashed}
+.st.run .ic{border-color:var(--acc);border-top-color:transparent;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.st .nm{font-weight:500;font-size:12.5px}
+.st.skip .nm{color:var(--faint)}
+.st .ms{font:10.5px 'JetBrains Mono';color:var(--faint);padding-top:2px}
+.st .dt2{grid-column:2/4;font-size:11.5px;color:var(--mute);line-height:1.55}
+.st .dt2 ul{margin:2px 0 0;padding-left:15px}
+.st .dt2 code{font:10.5px 'JetBrains Mono';background:var(--sunk);padding:0 4px;border-radius:3px;color:var(--ink)}
+.bar{height:4px;border-radius:2px;background:var(--line);margin-top:5px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--acc);transition:width .2s}
+.empty{padding:18px;color:var(--faint);font-size:12.5px;text-align:center}
+.statusbar{display:flex;align-items:center;gap:16px;padding:0 12px;background:var(--panel);border-top:1px solid var(--line);font-size:11.5px;color:var(--mute);white-space:nowrap;overflow:hidden}
+.statusbar>span{display:inline-flex;align-items:center;gap:6px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--faint)}
+.dot.ok{background:var(--ok)}.dot.run{background:var(--acc);animation:blink 1s infinite}.dot.bad{background:var(--bad)}
+@keyframes blink{50%{opacity:.3}}
+.statusbar .r{margin-left:auto}
+.overlay{position:fixed;inset:0;background:rgba(79,70,229,.08);border:3px dashed var(--acc);z-index:30;display:grid;place-items:center;font-size:18px;font-weight:600;color:var(--acc);pointer-events:none}
+dialog{border:0;border-radius:14px;padding:0;width:min(500px,94vw);box-shadow:0 30px 80px rgba(0,0,0,.25)}
+dialog::backdrop{background:rgba(17,24,39,.35)}
+.dlg{padding:20px}
+.dlg h3{margin:0 0 4px;font-size:17px}
+.dlg p.s{margin:0 0 14px;color:var(--mute);font-size:13px}
+.dlg label{display:block;font-size:12px;font-weight:600;margin:12px 0 5px}
+.dlg input,.dlg select{width:100%;border:1px solid var(--line2);border-radius:8px;padding:8px 10px;font:inherit;background:#fff}
+.dlg .row{display:flex;gap:8px}.dlg .row input{flex:1}
+.dlg .chk{display:flex;gap:8px;align-items:center;font-weight:400;margin-top:10px}
 .dlg .chk input{width:auto}
 .dlg .hint{font-size:12px;color:var(--mute);margin-top:6px}
-.dlg .hint code{font-family:'IBM Plex Mono';background:var(--bg);padding:1px 5px;border-radius:4px}
-.dlg footer{display:flex;justify-content:space-between;gap:10px;margin-top:20px}
-.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:10px 16px;border-radius:10px;font-size:14px;z-index:20;max-width:90vw}
-.foot{display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;padding:26px 0 40px;margin-top:30px;border-top:1px solid var(--line);font-size:13px;color:var(--faint)}
-.foot a{color:var(--mute);text-decoration:none}
+.dlg .hint code{font-family:'JetBrains Mono';background:var(--sunk);padding:1px 5px;border-radius:4px;font-size:11px}
+.dlg footer{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+.toast{position:fixed;bottom:40px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:9px 14px;border-radius:9px;font-size:13px;z-index:40;max-width:90vw}
+@media (max-width:1180px){.shell{grid-template-columns:220px minmax(0,1fr)}.activity{display:none}.activity.show{display:flex;position:fixed;right:0;top:48px;bottom:28px;width:min(360px,92vw);z-index:20;box-shadow:-10px 0 30px rgba(0,0,0,.12)}#togglePipe{display:inline-flex!important}}
+@media (max-width:820px){body{overflow:auto;height:auto;grid-template-rows:auto auto auto}.titlebar{flex-wrap:wrap;padding:8px 12px;height:auto}.shell{grid-template-columns:1fr}.sidebar{border-right:0;border-bottom:1px solid var(--line);max-height:280px}.inspect{grid-template-columns:1fr}.inspector{border-left:0;border-top:1px solid var(--line);max-height:440px}.main{min-height:80vh}.crumb,.private span,.tb-btn.hide-sm{display:none}.statusbar{flex-wrap:wrap;height:auto;padding:6px 12px}}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header class="top">
-    <a class="brand" href="./"><i></i>Office RAG</a>
-    <nav>
-      <button class="model" id="openSettings">Model: <b id="modelName">none (search only)</b></button>
-      <a href="https://github.com/unnatibshah/office-rag" target="_blank" rel="noopener">GitHub ↗</a>
-      <a href="https://unnatibshah.github.io/">Unnati Shah</a>
-    </nav>
-  </header>
+<header class="titlebar">
+  <a class="logo" href="./"><svg viewBox="0 0 32 32"><rect x="3" y="5" width="20" height="14" rx="3" fill="#4f46e5"/><rect x="9" y="13" width="20" height="14" rx="3" fill="#16a06b" fill-opacity=".9"/><path d="M13 20h12M13 23h8" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg>Deckray</a>
+  <span class="crumb">/ <b>Workspace</b></span>
+  <span class="spacer"></span>
+  <span class="private" title="Files are parsed in this browser tab and never uploaded"><svg class="i" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span>On-device</span></span>
+  <button class="tb-btn" id="openSettings"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>Model: <b id="modelName">none</b></button>
+  <button class="tb-btn" id="togglePipe" style="display:none"><svg class="i" viewBox="0 0 24 24"><path d="M4 6h16M4 12h10M4 18h6"/></svg>Pipeline</button>
+  <a class="tb-btn hide-sm" href="https://github.com/unnatibshah/deckray" target="_blank" rel="noopener">GitHub</a>
+  <a class="tb-btn hide-sm" href="https://unnatibshah.github.io/">Unnati Shah</a>
+</header>
 
-  <section class="hero">
-    <div>
-      <span class="eyebrow">// ingestion lab for RAG</span>
-      <h1>See how slides and spreadsheets <span>become chunks</span>.</h1>
-      <p class="lede">Most RAG pipelines flatten Office files into a wall of text and lose what made them useful: headers, merged cells, chart data, speaker notes. This one keeps the structure, shows you exactly what it extracted, and answers with citations to the slide or row.</p>
-      <span class="private">🔒 Runs entirely in your browser. Your files are never uploaded.</span>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="ph"><span>Sources</span><span class="acts"><button class="icon-btn" id="addBtn" title="Add files" disabled><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button></span></div>
+    <div class="drop-mini">Drop <b>.pptx</b> / <b>.xlsx</b> anywhere, or <b id="browse">browse</b></div>
+    <input type="file" id="file" accept=".pptx,.xlsx,.xlsm" multiple hidden>
+    <nav class="tree scroll" id="tree"><div class="empty">No sources yet.</div></nav>
+    <div class="sb-foot"><span>Max 20 MB per file · .pptx .xlsx .xlsm</span><span>Parsed in this tab, never uploaded.</span></div>
+  </aside>
+
+  <main class="main">
+    <div class="tabs">
+      <button class="tab on" data-tab="inspect"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg>Inspect</button>
+      <button class="tab" data-tab="chunks"><svg class="i" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 10h16M4 15h16M10 4v16"/></svg>Chunks <span class="count" id="chunkCount">0</span></button>
+      <button class="tab" data-tab="ask"><svg class="i" viewBox="0 0 24 24"><path d="M5 5h14v10H9l-4 4z"/></svg>Ask</button>
     </div>
-    <div class="drop" id="drop">
-      <h3>Drop .pptx or .xlsx files</h3>
-      <p>Up to 20 MB each. Or start with the sample deck and workbook.</p>
-      <div class="btns">
-        <button class="btn primary" id="loadSamples" disabled>Load samples</button>
-        <button class="btn" id="pick" disabled>Choose files…</button>
-        <input type="file" id="file" accept=".pptx,.xlsx,.xlsm" multiple hidden>
-      </div>
-      <div class="steps" id="steps"><span class="step" id="st-py">python runtime</span><span class="step" id="st-parse">parse</span><span class="step" id="st-img">describe images</span><span class="step" id="st-embed">embed</span></div>
+    <div class="view">
+      <section class="inspect" id="tab-inspect">
+        <div class="canvas" id="canvas"></div>
+        <aside class="inspector">
+          <div class="ph"><span id="inspTitle">Chunks</span><div class="seg" id="seg"><button class="on" data-mode="structure">Structured</button><button data-mode="naive">Naive</button></div></div>
+          <div class="scroll" id="insp"><div class="empty">Select a slide or sheet.</div></div>
+        </aside>
+      </section>
+      <section class="tablev" id="tab-chunks" hidden>
+        <div class="toolbar"><label class="search"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg><input id="tq" placeholder="Filter chunks…"></label><span id="tfilters" style="display:flex;gap:6px;flex-wrap:wrap"></span><span class="spacer"></span><span class="mono" style="color:var(--faint);font-size:11.5px" id="tinfo"></span></div>
+        <div class="scroll"><table class="dt"><thead><tr><th>Type</th><th>Location</th><th>Source</th><th>Tokens</th><th>Vector</th><th>Text</th></tr></thead><tbody id="tbody"></tbody></table></div>
+      </section>
+      <section class="askv" id="tab-ask" hidden>
+        <div class="thread" id="thread"><div class="empty" id="askEmpty">Add sources, then ask a question. Each step of the answer shows up live in the Pipeline panel.</div></div>
+        <div class="composer"><form id="askForm"><input id="q" maxlength="400" placeholder="Ask about your slides and sheets…" disabled><button class="btn primary" id="askBtn" disabled>Ask</button></form><div class="examples" id="examples"></div></div>
+      </section>
     </div>
-  </section>
+  </main>
 
-  <section class="lab">
-    <aside class="panel"><div class="ph">Library</div><div class="lib" id="lib"><div class="empty">No documents yet.</div></div></aside>
-    <section class="panel"><div class="ph"><span id="viewTitle">X-ray</span><span id="viewMeta"></span></div><div class="xray" id="xray"><div class="empty">Load the samples or drop a file to see its structure: every element is outlined in the color of the chunk it becomes.</div></div></section>
-    <aside class="panel chunks"><div class="ph"><span id="chunkTitle">Chunks</span><div class="seg"><button class="on" data-mode="structure">Structure-aware</button><button data-mode="naive">Naive</button></div></div><div class="clist" id="clist"><div class="empty">Chunks for the selected slide or sheet appear here.</div></div></aside>
-  </section>
-
-  <section class="ask panel">
-    <div class="ph"><span>Ask the documents</span><span id="askMeta"></span></div>
-    <div class="askbox">
-      <form id="askForm"><input id="q" maxlength="400" placeholder="Load documents first, then ask a question…" disabled><button class="btn primary" id="askBtn" disabled>Ask</button></form>
-      <div class="chips" id="examples"></div>
-      <div class="flow" id="flow" hidden></div>
-      <div class="result" id="result" hidden><div><div class="answer" id="answer"></div></div><div class="srcs" id="srcs"></div></div>
-    </div>
-  </section>
-
-  <footer class="foot">
-    <span>Built by <a href="https://unnatibshah.github.io/">Unnati Shah</a> · Python parser running in Pyodide · embeddings by transformers.js (all-MiniLM-L6-v2)</span>
-    <span>Sample files are fictional.</span>
-  </footer>
+  <aside class="activity" id="activity">
+    <div class="ph"><span>Pipeline</span><span class="acts"><button class="icon-btn" id="clearRuns" title="Clear history"><svg class="i" viewBox="0 0 24 24"><path d="M5 7h14M10 11v6M14 11v6M7 7l1 12h8l1-12M9 7V4h6v3"/></svg></button></span></div>
+    <div class="scroll"><div class="runs" id="runs"><div class="empty">Every ingestion and every question runs as a pipeline. Its steps, timings and decisions appear here live.</div></div></div>
+  </aside>
 </div>
 
+<footer class="statusbar">
+  <span><i class="dot run" id="sb-py-dot"></i><span id="sb-py">Starting Python…</span></span>
+  <span><i class="dot" id="sb-emb-dot"></i><span id="sb-emb">Embeddings: not loaded</span></span>
+  <span id="sb-idx">0 chunks indexed</span>
+  <span id="sb-model">Model: none</span>
+  <span class="r">🔒 Files stay on this device</span>
+</footer>
+
+<div class="overlay" id="overlay" hidden>Drop to add sources</div>
+
 <dialog id="settings"><form method="dialog" class="dlg" id="setForm">
-  <h3>Model for answers</h3>
-  <p class="s">Extraction and search work without a model. Add one to get written answers, smarter routing and image descriptions. Your key goes straight from your browser to the provider, never to this site.</p>
+  <h3>Model</h3>
+  <p class="s">Parsing, the X-ray and search work without a model. A model adds smarter routing, row filters, image descriptions and written answers with citations. Your key goes straight from this tab to the provider, never to this site.</p>
   <label for="prov">Provider</label>
   <select id="prov"><option value="">None (search only)</option><option value="ollama">Ollama (local)</option><option value="openai">OpenAI</option><option value="anthropic">Anthropic</option><option value="groq">Groq</option><option value="openrouter">OpenRouter</option></select>
   <div id="provFields">
     <label for="base">API base URL</label><input id="base" spellcheck="false">
-    <div id="keyWrap"><label for="key">API key</label><input id="key" type="password" autocomplete="off" spellcheck="false" placeholder="sk-…"></div>
+    <div id="keyWrap"><label for="key">API key</label><input id="key" type="password" autocomplete="off" spellcheck="false"></div>
     <label for="model">Model</label>
     <div class="row"><input id="model" list="models" spellcheck="false" placeholder="pick or type a model id"><button type="button" class="btn" id="fetchModels">Load list</button></div>
     <datalist id="models"></datalist>
     <div class="hint" id="provHint"></div>
-    <label class="chk"><input type="checkbox" id="vision"> Describe slide images with this model (needs a vision model)</label>
+    <label class="chk"><input type="checkbox" id="vision"> Describe slide images with this model (vision models only)</label>
     <label class="chk"><input type="checkbox" id="remember"> Remember the key on this device</label>
   </div>
-  <footer><button class="btn" value="cancel">Cancel</button><button class="btn primary" id="saveSettings" value="save">Save</button></footer>
+  <footer><button class="btn" value="cancel">Cancel</button><button class="btn primary" value="save">Save</button></footer>
 </form></dialog>
 
 <script src="https://cdn.jsdelivr.net/pyodide/v0.29.5/full/pyodide.js"></script>

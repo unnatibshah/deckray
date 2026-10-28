@@ -8,10 +8,10 @@ import pytest
 from openpyxl import Workbook
 from pptx import Presentation
 
-import officerag
-from officerag import ingest, pptx
-from officerag.chunks import select_context, sources
-from officerag.llm import validate_plan
+import deckray
+from deckray import ingest, pptx
+from deckray.chunks import select_context, sources
+from deckray.llm import validate_plan
 
 SAMPLES = Path(__file__).resolve().parent.parent / "samples"
 DECK = ingest("deck.pptx", (SAMPLES / "Solar Program Q3 Review.pptx").read_bytes())
@@ -91,12 +91,12 @@ def test_naive_baseline_loses_what_structure_keeps():
 
 
 def test_ingest_rejects_bad_input(monkeypatch):
-    with pytest.raises(officerag.IngestError, match="only .pptx"):
+    with pytest.raises(deckray.IngestError, match="only .pptx"):
         ingest("notes.txt", b"hi")
-    with pytest.raises(officerag.IngestError, match="isn't a valid Office file"):
+    with pytest.raises(deckray.IngestError, match="isn't a valid Office file"):
         ingest("old.xlsx", b"not a zip")
-    monkeypatch.setattr(officerag, "MAX_UNZIPPED", 1000)
-    with pytest.raises(officerag.IngestError, match="expands to too much"):
+    monkeypatch.setattr(deckray, "MAX_UNZIPPED", 1000)
+    with pytest.raises(deckray.IngestError, match="expands to too much"):
         ingest("book.xlsx", (SAMPLES / "Solar Sites Directory.xlsx").read_bytes())
 
 
@@ -114,3 +114,17 @@ def test_select_context_applies_filters_and_pulls_slide_siblings():
     assert {c["id"] for c in ctx} == {c["id"] for c in DECK["chunks"] if c["where"].get("slide") == 5}
     rows = select_context(chunks, [0.0] * len(chunks), {"route": "xlsx", "sheet": "Sites", "filters": {"Country": "Spain", "Status": "Offline"}})
     assert [c["fields"]["Site ID"] for c in rows] == ["ES-03"]
+
+
+async def _empty_post(url, headers, body):
+    return {"choices": [{"message": {"content": ""}}]}
+
+
+def test_empty_model_responses_are_errors_not_blank_answers():
+    import asyncio
+    from deckray import llm
+    cfg = {"provider": "ollama", "model": "m"}
+    plan = asyncio.run(llm.plan(cfg, _empty_post, "q", []))
+    assert plan["source"] == "fallback" and "empty response" in plan["error"]
+    with pytest.raises(RuntimeError, match="empty response"):
+        asyncio.run(llm.answer(cfg, _empty_post, "q", [{"text": "x"}]))
